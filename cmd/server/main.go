@@ -3,66 +3,45 @@ package main
 import (
 	"log"
 	"net/http"
-	"pet-shelter/internal/config"
+	"os"
 	"pet-shelter/internal/handlers"
-	"pet-shelter/internal/middleware"
-	"pet-shelter/internal/repository"
-	"pet-shelter/internal/service"
-
-	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
 )
 
 func main() {
-	// Загружаем конфигурацию
-	cfg := config.Load()
-
-	// Подключаемся к базе данных
-	db, err := repository.NewDB(cfg)
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+	// Определяем порт
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
 	}
-	defer db.Close()
-
-	// Инициализируем репозитории
-	userRepo := repository.NewUserRepository(db)
-	animalRepo := repository.NewAnimalRepository(db)
-	catalogRepo := repository.NewCatalogRepository(db)
-
-	// Инициализируем сервисы
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
-	animalService := service.NewAnimalService(animalRepo)
-	catalogService := service.NewCatalogService(catalogRepo)
 
 	// Инициализируем обработчики
-	animalHandler := handlers.NewAnimalHandler(animalService)
-	catalogHandler := handlers.NewCatalogHandler(catalogService)
-	authHandler := handlers.NewAuthHandler(authService)
+	handlers.Init()
 
-	// Создаем маршрутизатор
-	r := mux.NewRouter()
+	// Настройка статических файлов
+	fs := http.FileServer(http.Dir("web/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Публичные маршруты
-	r.HandleFunc("/api/login", authHandler.Login).Methods("POST")
-	r.HandleFunc("/api/register", authHandler.Register).Methods("POST")
-	r.HandleFunc("/api/animals", animalHandler.GetAnimals).Methods("GET")
-	r.HandleFunc("/api/animals/{id}", animalHandler.GetAnimal).Methods("GET")
-	r.HandleFunc("/api/catalog", catalogHandler.GetItems).Methods("GET")
-	r.HandleFunc("/api/catalog/{id}", catalogHandler.GetItem).Methods("GET")
+	// Регистрируем маршруты
+	http.HandleFunc("/", handlers.HomeHandler)
+	http.HandleFunc("/admin", handlers.AdminHandler)
+	http.HandleFunc("/api/docs", handlers.APIHandler)
+	http.HandleFunc("/health", handlers.HealthHandler)
 
-	// Защищенные маршруты для администраторов
-	admin := r.PathPrefix("/api/admin").Subrouter()
-	admin.Use(middleware.AuthMiddleware(authService))
-	admin.Use(middleware.AdminOnly)
+	// API маршруты
+	http.HandleFunc("/api/animals", handlers.AnimalsHandler)
+	http.HandleFunc("/api/animals/", handlers.AnimalHandler)
+	http.HandleFunc("/api/catalog", handlers.CatalogHandler)
+	http.HandleFunc("/api/login", handlers.LoginHandler)
+	http.HandleFunc("/api/register", handlers.RegisterHandler)
+	http.HandleFunc("/api/admin/animals", handlers.CreateAnimalHandler)
+	http.HandleFunc("/api/admin/catalog", handlers.CreateCatalogItemHandler)
 
-	admin.HandleFunc("/animals", animalHandler.CreateAnimal).Methods("POST")
-	admin.HandleFunc("/animals/{id}", animalHandler.UpdateAnimal).Methods("PUT")
-	admin.HandleFunc("/animals/{id}", animalHandler.DeleteAnimal).Methods("DELETE")
-	admin.HandleFunc("/catalog", catalogHandler.CreateItem).Methods("POST")
-	admin.HandleFunc("/catalog/{id}", catalogHandler.UpdateItem).Methods("PUT")
-	admin.HandleFunc("/catalog/{id}", catalogHandler.DeleteItem).Methods("DELETE")
+	// Запуск сервера
+	log.Printf("🚀 Pet Shelter System запущен на порту %s", port)
+	log.Printf("🌐 Откройте: http://localhost:%s", port)
 
-	// Запускаем сервер
-	log.Printf("Server starting on port %s", cfg.ServerPort)
-	log.Fatal(http.ListenAndServe(":"+cfg.ServerPort, r))
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Fatal("❌ Ошибка сервера:", err)
+	}
 }

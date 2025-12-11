@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Pet Shelter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">🐾 Pet Shelter</a>
+            <div class="nav-links">
+                <a href="/">Главная</a>
+                <a href="/admin">Админ</a>
+                <a href="/api/docs">API Docs</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="api-docs">
+            <h1>📚 Документация API</h1>
+            <p class="subtitle">REST API для работы с системой Pet Shelter</p>
+            
+            <div class="api-info">
+                <p><strong>Базовый URL:</strong> <code>http://localhost:{{.Port}}/api</code></p>
+                <p><strong>Формат данных:</strong> JSON</p>
+                <p><strong>Аутентификация:</strong> Заголовок X-Admin: true для админских endpoints</p>
+            </div>
+            
+            <div class="endpoints">
+                <h2>📡 Доступные endpoints</h2>
+                
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <code>/api/animals</code>
+                    </div>
+                    <p class="endpoint-description">Получить список всех животных в приюте</p>
+                </div>
+                
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <code>/api/admin/animals</code>
+                    </div>
+                    <p class="endpoint-description">Добавить новое животное (требует заголовок X-Admin: true)</p>
+                </div>
+                
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <code>/api/catalog</code>
+                    </div>
+                    <p class="endpoint-description">Получить каталог товаров для животных</p>
+                </div>
+                
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <code>/api/login</code>
+                    </div>
+                    <p class="endpoint-description">Войти в систему (admin/admin123)</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <a href="/" class="btn">← На главную</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

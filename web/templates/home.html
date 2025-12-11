@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Pet Shelter</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">🐾 Pet Shelter</a>
+            <div class="nav-links">
+                <a href="/">Главная</a>
+                <a href="/admin">Админ</a>
+                <a href="/api/docs">API Docs</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <header class="hero">
+            <h1>Pet Shelter Management System</h1>
+            <p class="subtitle">Система управления приютом для животных</p>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{.AnimalCount}}</div>
+                <div class="stat-label">Животных в приюте</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-number">{{.CatalogCount}}</div>
+                <div class="stat-label">Товаров в каталоге</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-number">{{.UserCount}}</div>
+                <div class="stat-label">Пользователей</div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/admin" class="btn btn-primary">👑 Панель администратора</a>
+            <button class="btn btn-success" onclick="loadAnimals()">🦮 Показать животных</button>
+            <button class="btn btn-warning" onclick="loadCatalog()">🛒 Показать каталог</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <footer>
+            <p>Pet Shelter Management System © {{.Year}}</p>
+            <p>Сервер работает на порту {{.Port}}</p>
+        </footer>
+    </div>
+    
+    <script>
+        function loadAnimals() {
+            fetch('/api/animals')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('results').innerHTML = 
+                        '<h3>Животные:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                });
+        }
+        
+        function loadCatalog() {
+            fetch('/api/catalog')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('results').innerHTML = 
+                        '<h3>Каталог:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                });
+        }
+        
+        // Автозагрузка животных
+        window.onload = loadAnimals;
+    </script>
+</body>
+</html>
