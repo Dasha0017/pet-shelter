@@ -19,7 +19,7 @@ func Load() *Config {
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
 		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "0000"),
+		DBPassword: getEnv("DB_PASSWORD", "password"),
 		DBName:     getEnv("DB_NAME", "pet_shelter"),
 		ServerPort: getEnv("SERVER_PORT", "8080"),
 		JWTSecret:  getEnv("JWT_SECRET", "your-secret-key-change-in-production"),

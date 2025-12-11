@@ -40,6 +40,30 @@ func main() {
                         });
                 }
             </script>
+			<button onclick="testAPI1()">Тест API1</button>
+            <div id="result" style="margin-top: 20px;"></div>
+            <script>
+                function testAPI1() {
+                    fetch('/api/catalog')
+                        .then(r => r.json())
+                        .then(data => {
+                            document.getElementById('result').innerHTML = 
+                                '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        });
+                }
+            </script>
+			<button onclick="testAPI2()">Тест API2</button>
+            <div id="result" style="margin-top: 20px;"></div>
+            <script>
+                function testAPI2() {
+                    fetch('/api/login')
+                        .then(r => r.json())
+                        .then(data => {
+                            document.getElementById('result').innerHTML = 
+                                '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                        });
+                }
+            </script>
         </body>
         </html>
         `, port)
