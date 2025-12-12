@@ -12,6 +12,7 @@
         th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
         th { background: #f0f0f0; }
         .btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px; }
+        .btn-del { padding: 5px 10px; background: #f72585; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -26,6 +27,7 @@
                 <th>Название</th>
                 <th>Цена</th>
                 <th>Количество</th>
+                <th>Действия</th>
             </tr>
             {{range .Items}}
             <tr>
@@ -33,6 +35,12 @@
                 <td>{{.Name}}</td>
                 <td>{{printf "%.2f" .Price}} ₽</td>
                 <td>{{.Quantity}}</td>
+                <td>
+                    <form action="/admin/catalog/delete" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="{{.ID}}">
+                        <button type="submit" class="btn-del">Удалить</button>
+                    </form>
+                </td>
             </tr>
             {{end}}
         </table>

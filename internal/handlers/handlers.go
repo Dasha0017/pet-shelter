@@ -13,9 +13,11 @@ var templates *template.Template
 // InitTemplates загружает все шаблоны из web/templates
 func InitTemplates() error {
 	templatesDir := filepath.Join("web", "templates")
+
+	// проверим, что директория существует (не обязательно, но полезно)
 	if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
 		log.Printf("директория шаблонов не найдена: %s", templatesDir)
-		return nil
+		return err
 	}
 
 	pattern := filepath.Join(templatesDir, "*.html")
@@ -48,6 +50,7 @@ func Home(w http.ResponseWriter, r *http.Request, data HomeData) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "home.html", data); err != nil {
+		log.Println("Home template error:", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 	}
 }
@@ -92,11 +95,12 @@ func Admin(w http.ResponseWriter, r *http.Request, rawUsers []map[string]interfa
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "admin.html", data); err != nil {
+		log.Println("Admin template error:", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 	}
 }
 
-// Страница "Животные"
+// ---- Animals page ----
 
 type Animal struct {
 	ID      int
@@ -109,7 +113,6 @@ type AnimalsPageData struct {
 	Animals []Animal
 }
 
-// animalsRaw - это []Animal из main.go это хэндлер
 func AnimalsPage(w http.ResponseWriter, r *http.Request, animals []Animal) {
 	data := AnimalsPageData{
 		Animals: animals,
@@ -117,11 +120,12 @@ func AnimalsPage(w http.ResponseWriter, r *http.Request, animals []Animal) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "animals.html", data); err != nil {
+		log.Println("Animals template error:", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 	}
 }
 
-// Страница "Каталог"
+// ---- Catalog page ----
 
 type CatalogItemView struct {
 	ID       int
@@ -134,7 +138,6 @@ type CatalogPageData struct {
 	Items []CatalogItemView
 }
 
-// catalogRaw - это []map[string]interface{} из main.go
 func CatalogPage(w http.ResponseWriter, r *http.Request, catalogRaw []map[string]interface{}) {
 	data := CatalogPageData{}
 
@@ -154,6 +157,7 @@ func CatalogPage(w http.ResponseWriter, r *http.Request, catalogRaw []map[string
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "catalog.html", data); err != nil {
+		log.Println("Catalog template error:", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 	}
 }
@@ -169,6 +173,7 @@ func APIDocs(w http.ResponseWriter, r *http.Request, port string) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "api.html", data); err != nil {
+		log.Println("API docs template error:", err)
 		http.Error(w, "server error", http.StatusInternalServerError)
 	}
 }

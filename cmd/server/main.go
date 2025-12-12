@@ -1,109 +1,169 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
+	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
+	"pet-shelter/internal/config"
 	"pet-shelter/internal/handlers"
+	"pet-shelter/internal/repository"
 )
 
-// Модели данных
+var db *sql.DB
+
+// alias, чтобы переиспользовать структуру из handlers
 type Animal = handlers.Animal
 
-// Хранилище в памяти
-var animals = []Animal{
-	{ID: 1, Name: "Барсик", Species: "Кошка", Age: 3},
-	{ID: 2, Name: "Шарик", Species: "Собака", Age: 2},
-}
-
-var catalog = []map[string]interface{}{
-	{"id": 1, "name": "Сухой корм для собак", "price": 25.99, "quantity": 50},
-	{"id": 2, "name": "Игрушка для кошек", "price": 5.99, "quantity": 100},
-}
-
-var users = []map[string]interface{}{
-	{"id": 1, "username": "admin", "password": "admin123", "role": "admin"},
-	{"id": 2, "username": "user", "password": "user123", "role": "user"},
+func getLocalIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "127.0.0.1"
+	}
+	defer conn.Close()
+	if addr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+		return addr.IP.String()
+	}
+	return "127.0.0.1"
 }
 
 func main() {
-	// Определяем порт
-	port := os.Getenv("PORT")
+	// Загружаем конфиг и подключаемся к БД
+	cfg := config.Load()
+
+	var err error
+	db, err = repository.NewDB(cfg)
+	if err != nil {
+		log.Fatal("DB connection error:", err)
+	}
+	defer db.Close()
+
+	if err := handlers.InitTemplates(); err != nil {
+		log.Fatal("InitTemplates error:", err)
+	}
+	log.Println("Templates initialized")
+
+	// Статика (CSS и т.п.)
+	fs := http.FileServer(http.Dir("web/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// HTML-страницы
+	http.HandleFunc("/", homePageHandler)
+	http.HandleFunc("/animals", animalsPageHandler)
+	http.HandleFunc("/catalog", catalogPageHandler)
+	http.HandleFunc("/admin", adminPageHandler)
+	http.HandleFunc("/api/docs", apiDocsHandler)
+	http.HandleFunc("/health", healthHandler)
+
+	// Публичный API (JSON)
+	http.HandleFunc("/api/animals", animalsAPIHandler)
+	http.HandleFunc("/api/catalog", catalogAPIHandler)
+
+	// Админские формы
+	http.HandleFunc("/admin/animals/create", adminCreateAnimalFormHandler)
+	http.HandleFunc("/admin/animals/delete", adminDeleteAnimalFormHandler)
+	http.HandleFunc("/admin/catalog/create", adminCreateCatalogFormHandler)
+	http.HandleFunc("/admin/catalog/delete", adminDeleteCatalogFormHandler)
+
+	port := cfg.ServerPort
 	if port == "" {
 		port = "8081"
 	}
 
-	// Инициализируем шаблоны
-	log.Println("Загрузка шаблонов...")
-	if err := handlers.InitTemplates(); err != nil {
-		log.Printf("Не удалось загрузить шаблоны: %v", err)
+	host := getLocalIP()
+	addr := ":" + port
+
+	log.Println("======================================")
+	log.Printf("Pet Shelter запущен на порту %s", port)
+	log.Printf("Локально:   http://localhost:%s", port)
+	log.Printf("В сети LAN: http://%s:%s", host, port)
+	log.Println("Нажми Ctrl+C для остановки сервера")
+	log.Println("======================================")
+
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.Fatal("ListenAndServe error:", err)
+	}
+}
+
+// ---------------- HTML handlers ----------------
+
+func homePageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
 	}
 
-	// Статика
-	fs := http.FileServer(http.Dir("web/static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	animals, err := repository.GetAllAnimals(db)
+	if err != nil {
+		log.Println("homePageHandler GetAllAnimals error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
 
-	// Страницы (HTML)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// данные для home.html
-		data := handlers.HomeData{
-			AnimalCount:  len(animals),
-			CatalogCount: len(catalog),
-			UserCount:    len(users),
-			Year:         time.Now().Year(),
-			Port:         port,
-		}
-		handlers.Home(w, r, data)
-	})
-	// новая страница со списком животных
-	http.HandleFunc("/animals", func(w http.ResponseWriter, r *http.Request) {
-		handlers.AnimalsPage(w, r, animals)
-	})
+	catalogItems, err := repository.GetAllCatalogItems(db)
+	if err != nil {
+		log.Println("homePageHandler GetAllCatalogItems error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
 
-	// новая страница с каталогом
-	http.HandleFunc("/catalog", func(w http.ResponseWriter, r *http.Request) {
-		handlers.CatalogPage(w, r, catalog)
-	})
+	data := handlers.HomeData{
+		AnimalCount:  len(animals),
+		CatalogCount: len(catalogItems),
+		UserCount:    2, // пока захардкожено
+		Year:         time.Now().Year(),
+		Port:         portFromRequest(r),
+	}
 
-	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		// данные для admin.html
-		handlers.Admin(w, r, users)
-	})
-
-	http.HandleFunc("/api/docs", func(w http.ResponseWriter, r *http.Request) {
-		handlers.APIDocs(w, r, port)
-	})
-
-	// Health check
-	http.HandleFunc("/health", healthHandler)
-
-	// API
-	http.HandleFunc("/api/animals", animalsHandler)
-	http.HandleFunc("/api/animals/", animalHandler)
-	http.HandleFunc("/api/catalog", catalogHandler)
-	http.HandleFunc("/api/login", loginHandler)
-	http.HandleFunc("/api/register", registerHandler)
-	http.HandleFunc("/api/admin/animals", createAnimalHandler)
-	http.HandleFunc("/api/admin/catalog", createCatalogItemHandler)
-
-	log.Printf("Pet Shelter запущен на порту %s", port)
-	go openBrowser(port)
-
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	handlers.Home(w, r, data)
 }
 
-// Функция для открытия браузера (как у тебя)
-func openBrowser(port string) {
-	time.Sleep(2 * time.Second)
-	fmt.Printf("\nСервер запущен: http://localhost:%s\n", port)
+func animalsPageHandler(w http.ResponseWriter, r *http.Request) {
+	animals, err := repository.GetAllAnimals(db)
+	if err != nil {
+		log.Println("animalsPageHandler error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	handlers.AnimalsPage(w, r, animals)
 }
 
-// Health check
+func catalogPageHandler(w http.ResponseWriter, r *http.Request) {
+	items, err := repository.GetAllCatalogItems(db)
+	if err != nil {
+		log.Println("catalogPageHandler error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
+	raw := make([]map[string]interface{}, 0, len(items))
+	for _, it := range items {
+		raw = append(raw, map[string]interface{}{
+			"id":       it.ID,
+			"name":     it.Name,
+			"price":    it.Price,
+			"quantity": it.Quantity,
+		})
+	}
+	handlers.CatalogPage(w, r, raw)
+}
+
+func adminPageHandler(w http.ResponseWriter, r *http.Request) {
+	rawUsers := []map[string]interface{}{
+		{"id": 1, "username": "admin", "role": "admin"},
+		{"id": 2, "username": "user", "role": "user"},
+	}
+	handlers.Admin(w, r, rawUsers)
+}
+
+func apiDocsHandler(w http.ResponseWriter, r *http.Request) {
+	handlers.APIDocs(w, r, portFromRequest(r))
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -113,159 +173,151 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- API хендлеры ниже оставляем без изменений ---
+// ---------------- JSON API handlers ----------------
 
-func animalsHandler(w http.ResponseWriter, r *http.Request) {
+func animalsAPIHandler(w http.ResponseWriter, r *http.Request) {
+	animals, err := repository.GetAllAnimals(db)
+	if err != nil {
+		log.Println("GetAllAnimals error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(animals)
 }
 
-func animalHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/api/animals/"):]
-	id, err := strconv.Atoi(idStr)
+func catalogAPIHandler(w http.ResponseWriter, r *http.Request) {
+	items, err := repository.GetAllCatalogItems(db)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		log.Println("GetAllCatalogItems error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
 	}
-
-	for _, animal := range animals {
-		if animal.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(animal)
-			return
-		}
-	}
-	http.NotFound(w, r)
-}
-
-func catalogHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(catalog)
+	json.NewEncoder(w).Encode(items)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+// ---------------- Admin forms (HTML) ----------------
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
+func adminCreateAnimalFormHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Только POST", http.StatusMethodNotAllowed)
 		return
 	}
 
-	for _, user := range users {
-		if user["username"] == data.Username && user["password"] == data.Password {
-			response := map[string]interface{}{
-				"token": "admin-token-" + fmt.Sprint(time.Now().Unix()),
-				"user": map[string]interface{}{
-					"id":       user["id"],
-					"username": user["username"],
-					"role":     user["role"],
-				},
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-	}
+	name := r.FormValue("name")
+	species := r.FormValue("species")
+	ageStr := r.FormValue("age")
 
-	http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
-}
-
-func registerHandler(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
-	}
-
-	for _, user := range users {
-		if user["username"] == data.Username {
-			http.Error(w, "Пользователь уже существует", http.StatusConflict)
-			return
-		}
-	}
-
-	newUser := map[string]interface{}{
-		"id":       len(users) + 1,
-		"username": data.Username,
-		"password": data.Password,
-		"role":     "user",
-	}
-
-	users = append(users, newUser)
-
-	response := map[string]interface{}{
-		"message": "Пользователь создан",
-		"user": map[string]interface{}{
-			"id":       newUser["id"],
-			"username": newUser["username"],
-			"role":     newUser["role"],
-		},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
-}
-
-func createAnimalHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("X-Admin") != "true" {
-		http.Error(w, "Требуются права администратора", http.StatusForbidden)
-		return
-	}
-
-	var animal Animal
-	if err := json.NewDecoder(r.Body).Decode(&animal); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
-	}
-
-	if animal.Name == "" || animal.Species == "" {
+	if name == "" || species == "" {
 		http.Error(w, "Имя и вид обязательны", http.StatusBadRequest)
 		return
 	}
 
-	animal.ID = len(animals) + 1
-	animals = append(animals, animal)
+	age, _ := strconv.Atoi(ageStr)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(animal)
+	a := handlers.Animal{
+		Name:    name,
+		Species: species,
+		Age:     age,
+	}
+
+	if err := repository.CreateAnimal(db, &a); err != nil {
+		log.Println("CreateAnimal error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/animals", http.StatusSeeOther)
 }
 
-func createCatalogItemHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("X-Admin") != "true" {
-		http.Error(w, "Требуются права администратора", http.StatusForbidden)
+func adminDeleteAnimalFormHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Только POST", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var item struct {
-		Name     string  `json:"name"`
-		Price    float64 `json:"price"`
-		Quantity int     `json:"quantity"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
+	idStr := r.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Некорректный ID", http.StatusBadRequest)
 		return
 	}
 
-	newItem := map[string]interface{}{
-		"id":       len(catalog) + 1,
-		"name":     item.Name,
-		"price":    item.Price,
-		"quantity": item.Quantity,
+	if err := repository.DeleteAnimal(db, id); err != nil {
+		log.Println("DeleteAnimal error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
 	}
 
-	catalog = append(catalog, newItem)
+	http.Redirect(w, r, "/animals", http.StatusSeeOther)
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newItem)
+func adminCreateCatalogFormHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Только POST", http.StatusMethodNotAllowed)
+		return
+	}
+
+	name := r.FormValue("name")
+	priceStr := r.FormValue("price")
+	qtyStr := r.FormValue("quantity")
+
+	if name == "" {
+		http.Error(w, "Название обязательно", http.StatusBadRequest)
+		return
+	}
+
+	price, _ := strconv.ParseFloat(priceStr, 64)
+	qty, _ := strconv.Atoi(qtyStr)
+
+	it := repository.CatalogItem{
+		Name:     name,
+		Type:     "manual",
+		Category: "",
+		Price:    price,
+		Quantity: qty,
+	}
+
+	if err := repository.CreateCatalogItem(db, &it); err != nil {
+		log.Println("CreateCatalogItem error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/catalog", http.StatusSeeOther)
+}
+
+func adminDeleteCatalogFormHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Только POST", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.FormValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Некорректный ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := repository.DeleteCatalogItem(db, id); err != nil {
+		log.Println("DeleteCatalogItem error:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/catalog", http.StatusSeeOther)
+}
+
+// вспомогательный хелпер, чтобы из r.Host вытащить порт при проксировании/других режимах
+func portFromRequest(r *http.Request) string {
+	host := r.Host
+	// ожидаемый формат host:port
+	for i := len(host) - 1; i >= 0; i-- {
+		if host[i] == ':' {
+			return host[i+1:]
+		}
+	}
+	return ""
 }
