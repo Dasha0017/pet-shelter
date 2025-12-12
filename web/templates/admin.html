@@ -3,62 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - Pet Shelter</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Панель администратора</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { background: #4361ee; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f0f0f0; }
+        .badge { padding: 3px 10px; border-radius: 10px; color: white; }
+        .admin { background: #f8961e; }
+        .user { background: #4cc9f0; }
+        .btn { padding: 10px 20px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <a href="/" class="logo">🐾 Pet Shelter</a>
-            <div class="nav-links">
-                <a href="/">Главная</a>
-                <a href="/admin">Админ</a>
-                <a href="/api/docs">API Docs</a>
-            </div>
-        </div>
-    </nav>
-    
     <div class="container">
-        <div class="admin-header">
-            <h1>👑 Панель администратора</h1>
+        <header>
+            <h1>👑 Панель администратора Pet Shelter</h1>
             <p>Управление системой приюта для животных</p>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-small">
-                <div class="stat-number">{{.UserCount}}</div>
-                <div class="stat-label">Всего пользователей</div>
-            </div>
-            <div class="stat-small">
-                <div class="stat-number">{{.AdminCount}}</div>
-                <div class="stat-label">Администраторов</div>
-            </div>
-        </div>
-        
+        </header>
+
+        <p>Всего пользователей: {{.UserCount}} (Администраторов: {{.AdminCount}})</p>
+
         <h3>Список пользователей:</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Имя пользователя</th>
-                    <th>Роль</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .Users}}
-                <tr>
-                    <td>{{.id}}</td>
-                    <td>{{.username}}</td>
-                    <td>
-                        <span class="badge {{if eq .role "admin"}}badge-warning{{else}}badge-info{{end}}">
-                            {{.role}}
-                        </span>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
+            <tr>
+                <th>ID</th>
+                <th>Имя пользователя</th>
+                <th>Роль</th>
+            </tr>
+            {{range .Users}}
+            <tr>
+                <td>{{.ID}}</td>
+                <td>{{.Username}}</td>
+                <td>
+                    <span class="badge {{.Role}}">{{.Role}}</span>
+                </td>
+            </tr>
+            {{end}}
         </table>
-        
+
         <div style="margin-top: 30px;">
             <a href="/" class="btn">← На главную</a>
         </div>

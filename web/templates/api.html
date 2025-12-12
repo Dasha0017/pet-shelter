@@ -3,72 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - Pet Shelter</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Документация API</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .endpoint { background: #f5f5f5; padding: 15px; margin: 10px 0; border-left: 4px solid #4361ee; }
+        .method { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; }
+        .get { background: #61affe; }
+        .get { background: #61affe; }
+        .post { background: #49cc90; }
+        code { background: #e0e0e0; padding: 2px 5px; font-family: monospace; }
+        pre { background: #2d3748; color: white; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <a href="/" class="logo">🐾 Pet Shelter</a>
-            <div class="nav-links">
-                <a href="/">Главная</a>
-                <a href="/admin">Админ</a>
-                <a href="/api/docs">API Docs</a>
-            </div>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <div class="api-docs">
-            <h1>📚 Документация API</h1>
-            <p class="subtitle">REST API для работы с системой Pet Shelter</p>
-            
-            <div class="api-info">
-                <p><strong>Базовый URL:</strong> <code>http://localhost:{{.Port}}/api</code></p>
-                <p><strong>Формат данных:</strong> JSON</p>
-                <p><strong>Аутентификация:</strong> Заголовок X-Admin: true для админских endpoints</p>
-            </div>
-            
-            <div class="endpoints">
-                <h2>📡 Доступные endpoints</h2>
-                
-                <div class="endpoint-card">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <code>/api/animals</code>
-                    </div>
-                    <p class="endpoint-description">Получить список всех животных в приюте</p>
-                </div>
-                
-                <div class="endpoint-card">
-                    <div class="endpoint-header">
-                        <span class="method post">POST</span>
-                        <code>/api/admin/animals</code>
-                    </div>
-                    <p class="endpoint-description">Добавить новое животное (требует заголовок X-Admin: true)</p>
-                </div>
-                
-                <div class="endpoint-card">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <code>/api/catalog</code>
-                    </div>
-                    <p class="endpoint-description">Получить каталог товаров для животных</p>
-                </div>
-                
-                <div class="endpoint-card">
-                    <div class="endpoint-header">
-                        <span class="method post">POST</span>
-                        <code>/api/login</code>
-                    </div>
-                    <p class="endpoint-description">Войти в систему (admin/admin123)</p>
-                </div>
-            </div>
-            
-            <div style="margin-top: 30px;">
-                <a href="/" class="btn">← На главную</a>
-            </div>
-        </div>
+    <h1>📚 Документация API Pet Shelter</h1>
+
+    <p><strong>Базовый URL:</strong> <code>http://localhost:{{.Port}}/api</code></p>
+
+    <div class="endpoint">
+        <span class="method get">GET</span> <strong>/api/animals</strong>
+        <p>Получить список всех животных</p>
+        <pre><code>curl http://localhost:{{.Port}}/api/animals</code></pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span> <strong>/api/admin/animals</strong>
+        <p>Добавить новое животное (требует заголовок X-Admin: true)</p>
+        <pre><code>curl -X POST http://localhost:{{.Port}}/api/admin/animals \
+ -H "Content-Type: application/json" \
+ -H "X-Admin: true" \
+ -d '{"name":"Мурзик","species":"Кошка","age":1}'</code></pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span> <strong>/api/catalog</strong>
+        <p>Получить каталог товаров</p>
+        <pre><code>curl http://localhost:{{.Port}}/api/catalog</code></pre>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span> <strong>/api/login</strong>
+        <p>Войти в систему (admin/admin123)</p>
+        <pre><code>curl -X POST http://localhost:{{.Port}}/api/login \
+ -H "Content-Type: application/json" \
+ -d '{"username":"admin","password":"admin123"}'</code></pre>
+    </div>
+
+    <div style="margin-top: 30px;">
+        <a href="/" style="color: #4361ee; text-decoration: none;">← На главную</a>
     </div>
 </body>
 </html>

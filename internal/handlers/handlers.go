@@ -1,380 +1,174 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
-	"strconv"
-	"time"
 )
 
-// Структуры данных
-type Animal struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	Species string `json:"species"`
-	Age     int    `json:"age"`
+var templates *template.Template
+
+// InitTemplates загружает все шаблоны из web/templates
+func InitTemplates() error {
+	templatesDir := filepath.Join("web", "templates")
+	if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
+		log.Printf("директория шаблонов не найдена: %s", templatesDir)
+		return nil
+	}
+
+	pattern := filepath.Join(templatesDir, "*.html")
+	t, err := template.ParseGlob(pattern)
+	if err != nil {
+		log.Printf("ошибка загрузки шаблонов: %v", err)
+		return err
+	}
+
+	templates = t
+	log.Printf("загружено шаблонов: %d", len(t.Templates()))
+	return nil
 }
 
-// Хранилище в памяти
-var (
-	animals = []Animal{
-		{ID: 1, Name: "Барсик", Species: "Кошка", Age: 3},
-		{ID: 2, Name: "Шарик", Species: "Собака", Age: 2},
-	}
+// ---- Home ----
 
-	catalog = []map[string]interface{}{
-		{"id": 1, "name": "Сухой корм для собак", "price": 25.99, "quantity": 50},
-		{"id": 2, "name": "Игрушка для кошек", "price": 5.99, "quantity": 100},
-	}
-
-	users = []map[string]interface{}{
-		{"id": 1, "username": "admin", "password": "admin123", "role": "admin"},
-		{"id": 2, "username": "user", "password": "user123", "role": "user"},
-	}
-
-	templates map[string]string
-)
-
-// TemplateData содержит данные для шаблонов
-type TemplateData struct {
-	Title        string
-	Year         int
-	Port         string
+type HomeData struct {
 	AnimalCount  int
 	CatalogCount int
 	UserCount    int
-	AdminCount   int
-	Users        []map[string]interface{}
+	Year         int
+	Port         string
 }
 
-// Init инициализирует обработчики
-func Init() {
-	log.Println("🔄 Инициализация обработчиков...")
-	loadTemplates()
-}
-
-// loadTemplates загружает HTML шаблоны из файлов
-func loadTemplates() {
-	templates = make(map[string]string)
-
-	templateFiles := []string{"home", "admin", "api"}
-
-	for _, name := range templateFiles {
-		path := filepath.Join("web", "templates", name+".html")
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			log.Printf("⚠️  Файл %s не найден, создаем шаблон по умолчанию", path)
-			templates[name] = getDefaultTemplate(name)
-		} else {
-			templates[name] = string(content)
-			log.Printf("✅ Загружен шаблон: %s", name)
-		}
-	}
-}
-
-// getDefaultTemplate возвращает шаблон по умолчанию если файл не найден
-func getDefaultTemplate(name string) string {
-	switch name {
-	case "home":
-		return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Pet Shelter - Главная</title>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        h1 { color: #4361ee; }
-    </style>
-</head>
-<body>
-    <h1>🐾 Pet Shelter Management System</h1>
-    <p>Животных в приюте: {{.AnimalCount}}</p>
-    <p>Товаров в каталоге: {{.CatalogCount}}</p>
-    <p>Пользователей: {{.UserCount}}</p>
-    <p><a href="/admin">Админ панель</a> | <a href="/api/docs">API Docs</a></p>
-</body>
-</html>`
-
-	case "admin":
-		return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Панель администратора</title>
-</head>
-<body>
-    <h1>👑 Панель администратора</h1>
-    <p>Всего пользователей: {{.UserCount}}</p>
-    <p><a href="/">На главную</a></p>
-</body>
-</html>`
-
-	case "api":
-		return `<!DOCTYPE html>
-<html>
-<head>
-    <title>Документация API</title>
-</head>
-<body>
-    <h1>📚 Документация API</h1>
-    <p>Порт сервера: {{.Port}}</p>
-    <p><a href="/">На главную</a></p>
-</body>
-</html>`
-
-	default:
-		return `<h1>Шаблон</h1>`
-	}
-}
-
-// renderTemplate рендерит HTML шаблон
-func renderTemplate(w http.ResponseWriter, tmplName string, data TemplateData) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	tmpl, ok := templates[tmplName]
-	if !ok {
-		http.Error(w, "Шаблон не найден", http.StatusInternalServerError)
-		return
-	}
-
-	// Используем Go шаблоны для подстановки данных
-	t, err := template.New(tmplName).Parse(tmpl)
-	if err != nil {
-		log.Printf("Ошибка парсинга шаблона: %v", err)
-		http.Error(w, "Ошибка шаблона", http.StatusInternalServerError)
-		return
-	}
-
-	err = t.Execute(w, data)
-	if err != nil {
-		log.Printf("Ошибка рендеринга: %v", err)
-	}
-}
-
-// ============ ВЕБ-ОБРАБОТЧИКИ ============
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+func Home(w http.ResponseWriter, r *http.Request, data HomeData) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
 
-	data := TemplateData{
-		Title:        "Главная",
-		Year:         time.Now().Year(),
-		Port:         "8081",
-		AnimalCount:  len(animals),
-		CatalogCount: len(catalog),
-		UserCount:    len(users),
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "home.html", data); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
 	}
-
-	renderTemplate(w, "home", data)
 }
 
-func AdminHandler(w http.ResponseWriter, r *http.Request) {
+// ---- Admin ----
+
+type UserView struct {
+	ID       int
+	Username string
+	Role     string
+}
+
+type AdminData struct {
+	UserCount  int
+	AdminCount int
+	Users      []UserView
+}
+
+func Admin(w http.ResponseWriter, r *http.Request, rawUsers []map[string]interface{}) {
+	views := make([]UserView, 0, len(rawUsers))
 	adminCount := 0
-	for _, user := range users {
-		if user["role"] == "admin" {
+
+	for _, u := range rawUsers {
+		id, _ := u["id"].(int)
+		username, _ := u["username"].(string)
+		role, _ := u["role"].(string)
+		views = append(views, UserView{
+			ID:       id,
+			Username: username,
+			Role:     role,
+		})
+		if role == "admin" {
 			adminCount++
 		}
 	}
 
-	data := TemplateData{
-		Title:      "Админ панель",
-		Year:       time.Now().Year(),
-		Port:       "8081",
-		UserCount:  len(users),
+	data := AdminData{
+		UserCount:  len(views),
 		AdminCount: adminCount,
-		Users:      users,
+		Users:      views,
 	}
 
-	renderTemplate(w, "admin", data)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "admin.html", data); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
 }
 
-func APIHandler(w http.ResponseWriter, r *http.Request) {
-	data := TemplateData{
-		Title: "Документация API",
-		Year:  time.Now().Year(),
-		Port:  "8081",
-	}
+// Страница "Животные"
 
-	renderTemplate(w, "api", data)
+type Animal struct {
+	ID      int
+	Name    string
+	Species string
+	Age     int
 }
 
-func HealthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "ok",
-		"time":    time.Now().Format(time.RFC3339),
-		"version": "1.0.0",
-	})
+type AnimalsPageData struct {
+	Animals []Animal
 }
 
-// ============ API ОБРАБОТЧИКИ ============
+// animalsRaw - это []Animal из main.go это хэндлер
+func AnimalsPage(w http.ResponseWriter, r *http.Request, animals []Animal) {
+	data := AnimalsPageData{
+		Animals: animals,
+	}
 
-func AnimalsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animals)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "animals.html", data); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
 }
 
-func AnimalHandler(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/api/animals/"):]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+// Страница "Каталог"
 
-	for _, animal := range animals {
-		if animal.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(animal)
-			return
-		}
-	}
-
-	http.NotFound(w, r)
+type CatalogItemView struct {
+	ID       int
+	Name     string
+	Price    float64
+	Quantity int
 }
 
-func CatalogHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(catalog)
+type CatalogPageData struct {
+	Items []CatalogItemView
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+// catalogRaw - это []map[string]interface{} из main.go
+func CatalogPage(w http.ResponseWriter, r *http.Request, catalogRaw []map[string]interface{}) {
+	data := CatalogPageData{}
+
+	for _, it := range catalogRaw {
+		id, _ := it["id"].(int)
+		name, _ := it["name"].(string)
+		price, _ := it["price"].(float64)
+		qty, _ := it["quantity"].(int)
+
+		data.Items = append(data.Items, CatalogItemView{
+			ID:       id,
+			Name:     name,
+			Price:    price,
+			Quantity: qty,
+		})
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "catalog.html", data); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
 	}
-
-	// Поиск пользователя
-	for _, user := range users {
-		if user["username"] == data.Username && user["password"] == data.Password {
-			response := map[string]interface{}{
-				"token": "admin-token-" + fmt.Sprint(time.Now().Unix()),
-				"user": map[string]interface{}{
-					"id":       user["id"],
-					"username": user["username"],
-					"role":     user["role"],
-				},
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-	}
-
-	http.Error(w, "Неверные учетные данные", http.StatusUnauthorized)
 }
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	var data struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+// ---- API docs ----
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
-	}
-
-	// Проверка существования пользователя
-	for _, user := range users {
-		if user["username"] == data.Username {
-			http.Error(w, "Пользователь уже существует", http.StatusConflict)
-			return
-		}
-	}
-
-	// Создание нового пользователя
-	newUser := map[string]interface{}{
-		"id":       len(users) + 1,
-		"username": data.Username,
-		"password": data.Password,
-		"role":     "user",
-	}
-
-	users = append(users, newUser)
-
-	response := map[string]interface{}{
-		"message": "Пользователь создан",
-		"user": map[string]interface{}{
-			"id":       newUser["id"],
-			"username": newUser["username"],
-			"role":     newUser["role"],
-		},
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+type APIDocsData struct {
+	Port string
 }
 
-func CreateAnimalHandler(w http.ResponseWriter, r *http.Request) {
-	// Проверка прав администратора
-	if r.Header.Get("X-Admin") != "true" {
-		http.Error(w, "Требуются права администратора", http.StatusForbidden)
-		return
+func APIDocs(w http.ResponseWriter, r *http.Request, port string) {
+	data := APIDocsData{Port: port}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "api.html", data); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
 	}
-
-	var animal Animal
-	if err := json.NewDecoder(r.Body).Decode(&animal); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
-	}
-
-	// Валидация
-	if animal.Name == "" || animal.Species == "" {
-		http.Error(w, "Имя и вид обязательны", http.StatusBadRequest)
-		return
-	}
-
-	// Создание нового животного
-	animal.ID = len(animals) + 1
-	animals = append(animals, animal)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(animal)
-}
-
-func CreateCatalogItemHandler(w http.ResponseWriter, r *http.Request) {
-	// Проверка прав администратора
-	if r.Header.Get("X-Admin") != "true" {
-		http.Error(w, "Требуются права администратора", http.StatusForbidden)
-		return
-	}
-
-	var item struct {
-		Name     string  `json:"name"`
-		Price    float64 `json:"price"`
-		Quantity int     `json:"quantity"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Неверный формат данных", http.StatusBadRequest)
-		return
-	}
-
-	// Создание нового товара
-	newItem := map[string]interface{}{
-		"id":       len(catalog) + 1,
-		"name":     item.Name,
-		"price":    item.Price,
-		"quantity": item.Quantity,
-	}
-
-	catalog = append(catalog, newItem)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newItem)
 }
