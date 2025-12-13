@@ -69,6 +69,14 @@ type AdminData struct {
 	Users      []UserView
 }
 
+func RenderLogin(w http.ResponseWriter, r *http.Request, role string) error {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	data := struct {
+		Role string
+	}{Role: role}
+	return templates.ExecuteTemplate(w, "login.html", data)
+}
+
 func Admin(w http.ResponseWriter, r *http.Request, rawUsers []map[string]interface{}) {
 	views := make([]UserView, 0, len(rawUsers))
 	adminCount := 0
