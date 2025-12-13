@@ -1,0 +1,14 @@
+<form action="/login" method="POST">
+    <input type="hidden" name="role" value="{{.Role}}">
+    <p>Вы входите как: {{.Role}}</p>
+
+    <label>Имя пользователя:</label><br>
+    <input type="text" name="username" required><br><br>
+
+    {{if eq .Role "admin"}}
+    <label>Пароль администратора:</label><br>
+    <input type="password" name="password" required><br><br>
+    {{end}}
+
+    <button type="submit">Войти</button>
+</form>

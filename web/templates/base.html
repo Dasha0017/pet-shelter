@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - Pet Shelter</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">🐾 Pet Shelter</a>
+            <div class="nav-links">
+                <a href="/"><i class="fas fa-home"></i> Главная</a>
+                <a href="/admin"><i class="fas fa-cog"></i> Админ</a>
+                <a href="/api/docs"><i class="fas fa-book"></i> API Docs</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        {{template "content" .}}
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p>Pet Shelter Management System © {{.Year}}</p>
+            <p>Версия: {{.Version}} | Сервер: {{.ServerInfo}}</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Общие JavaScript функции
+        function showMessage(type, text) {
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${text}`;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        }
+    </script>
+    {{template "scripts" .}}
+</body>
+</html>

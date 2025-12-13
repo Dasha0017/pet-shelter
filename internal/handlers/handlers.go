@@ -1,110 +1,187 @@
 package handlers
 
 import (
-	"encoding/json"
+	"html/template"
+	"log"
 	"net/http"
-	"pet-shelter/internal/models"
-	"pet-shelter/internal/service"
-	"strconv"
-
-	"github.com/gorilla/mux"
+	"os"
+	"path/filepath"
 )
 
-type AnimalHandler struct {
-	animalService *service.AnimalService
-}
+var templates *template.Template
 
-func NewAnimalHandler(animalService *service.AnimalService) *AnimalHandler {
-	return &AnimalHandler{animalService: animalService}
-}
+// InitTemplates загружает все шаблоны из web/templates
+func InitTemplates() error {
+	templatesDir := filepath.Join("web", "templates")
 
-func (h *AnimalHandler) CreateAnimal(w http.ResponseWriter, r *http.Request) {
-	var animal models.Animal
-	if err := json.NewDecoder(r.Body).Decode(&animal); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	// проверим, что директория существует (не обязательно, но полезно)
+	if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
+		log.Printf("директория шаблонов не найдена: %s", templatesDir)
+		return err
 	}
 
-	if err := h.animalService.Create(&animal); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(animal)
-}
-
-func (h *AnimalHandler) GetAnimals(w http.ResponseWriter, r *http.Request) {
-	animals, err := h.animalService.GetAll()
+	pattern := filepath.Join(templatesDir, "*.html")
+	t, err := template.ParseGlob(pattern)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		log.Printf("ошибка загрузки шаблонов: %v", err)
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animals)
+	templates = t
+	log.Printf("загружено шаблонов: %d", len(t.Templates()))
+	return nil
 }
 
-func (h *AnimalHandler) GetAnimal(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "Invalid animal ID", http.StatusBadRequest)
-		return
-	}
+// ---- Home ----
 
-	animal, err := h.animalService.GetByID(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if animal == nil {
-		http.Error(w, "Animal not found", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animal)
+type HomeData struct {
+	AnimalCount  int
+	CatalogCount int
+	UserCount    int
+	Year         int
+	Port         string
 }
 
-func (h *AnimalHandler) UpdateAnimal(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "Invalid animal ID", http.StatusBadRequest)
+func Home(w http.ResponseWriter, r *http.Request, data HomeData) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
 		return
 	}
 
-	var animal models.Animal
-	if err := json.NewDecoder(r.Body).Decode(&animal); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "home.html", data); err != nil {
+		log.Println("Home template error:", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
 	}
-	animal.ID = id
-
-	if err := h.animalService.Update(&animal); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(animal)
 }
 
-func (h *AnimalHandler) DeleteAnimal(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, "Invalid animal ID", http.StatusBadRequest)
-		return
+// ---- Admin ----
+
+type UserView struct {
+	ID       int
+	Username string
+	Role     string
+}
+
+type AdminData struct {
+	UserCount  int
+	AdminCount int
+	Users      []UserView
+}
+
+func RenderLogin(w http.ResponseWriter, r *http.Request, role string) error {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	data := struct {
+		Role string
+	}{Role: role}
+	return templates.ExecuteTemplate(w, "login.html", data)
+}
+
+func Admin(w http.ResponseWriter, r *http.Request, rawUsers []map[string]interface{}) {
+	views := make([]UserView, 0, len(rawUsers))
+	adminCount := 0
+
+	for _, u := range rawUsers {
+		id, _ := u["id"].(int)
+		username, _ := u["username"].(string)
+		role, _ := u["role"].(string)
+		views = append(views, UserView{
+			ID:       id,
+			Username: username,
+			Role:     role,
+		})
+		if role == "admin" {
+			adminCount++
+		}
 	}
 
-	if err := h.animalService.Delete(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	data := AdminData{
+		UserCount:  len(views),
+		AdminCount: adminCount,
+		Users:      views,
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "admin.html", data); err != nil {
+		log.Println("Admin template error:", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
+}
+
+// ---- Animals page ----
+
+type Animal struct {
+	ID      int
+	Name    string
+	Species string
+	Age     int
+}
+
+type AnimalsPageData struct {
+	Animals []Animal
+}
+
+func AnimalsPage(w http.ResponseWriter, r *http.Request, animals []Animal) {
+	data := AnimalsPageData{
+		Animals: animals,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "animals.html", data); err != nil {
+		log.Println("Animals template error:", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
+}
+
+// ---- Catalog page ----
+
+type CatalogItemView struct {
+	ID       int
+	Name     string
+	Price    float64
+	Quantity int
+}
+
+type CatalogPageData struct {
+	Items []CatalogItemView
+}
+
+func CatalogPage(w http.ResponseWriter, r *http.Request, catalogRaw []map[string]interface{}) {
+	data := CatalogPageData{}
+
+	for _, it := range catalogRaw {
+		id, _ := it["id"].(int)
+		name, _ := it["name"].(string)
+		price, _ := it["price"].(float64)
+		qty, _ := it["quantity"].(int)
+
+		data.Items = append(data.Items, CatalogItemView{
+			ID:       id,
+			Name:     name,
+			Price:    price,
+			Quantity: qty,
+		})
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "catalog.html", data); err != nil {
+		log.Println("Catalog template error:", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
+}
+
+// ---- API docs ----
+
+type APIDocsData struct {
+	Port string
+}
+
+func APIDocs(w http.ResponseWriter, r *http.Request, port string) {
+	data := APIDocsData{Port: port}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "api.html", data); err != nil {
+		log.Println("API docs template error:", err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+	}
 }

@@ -21,7 +21,7 @@ func Load() *Config {
 		DBUser:     getEnv("DB_USER", "postgres"),
 		DBPassword: getEnv("DB_PASSWORD", "0000"),
 		DBName:     getEnv("DB_NAME", "pet_shelter"),
-		ServerPort: getEnv("SERVER_PORT", "8080"),
+		ServerPort: getEnv("SERVER_PORT", "8081"),
 		JWTSecret:  getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 	}
 }

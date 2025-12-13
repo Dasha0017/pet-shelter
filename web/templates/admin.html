@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { background: #4361ee; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f0f0f0; }
+        .badge { padding: 3px 10px; border-radius: 10px; color: white; }
+        .admin { background: #f8961e; }
+        .user { background: #4cc9f0; }
+        .btn { padding: 10px 20px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px; }
+        .form-block { background: white; padding: 15px; border-radius: 10px; margin-top: 20px; }
+        .form-block label { display: block; margin-top: 8px; }
+        .form-block input { width: 100%; padding: 6px; margin-top: 3px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👑 Панель администратора Pet Shelter</h1>
+            <p>Управление системой приюта для животных</p>
+        </header>
+
+        <p>Всего пользователей: {{.UserCount}} (Администраторов: {{.AdminCount}})</p>
+
+        <h3>Список пользователей:</h3>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Имя пользователя</th>
+                <th>Роль</th>
+            </tr>
+            {{range .Users}}
+            <tr>
+                <td>{{.ID}}</td>
+                <td>{{.Username}}</td>
+                <td>
+                    <span class="badge {{.Role}}">{{.Role}}</span>
+                </td>
+            </tr>
+            {{end}}
+        </table>
+
+        <!-- Форма добавления животного -->
+        <div class="form-block">
+            <h3>Добавить новое животное</h3>
+            <form action="/admin/animals/create" method="post">
+                <label>Имя:</label>
+                <input type="text" name="name" placeholder="Барсик" required>
+
+                <label>Вид:</label>
+                <input type="text" name="species" placeholder="Кошка" required>
+
+                <label>Возраст (лет):</label>
+                <input type="number" name="age" value="1" min="0" max="30">
+
+                <button type="submit" class="btn">Добавить животное</button>
+            </form>
+        </div>
+
+        <!-- Форма добавления товара -->
+        <div class="form-block">
+            <h3>Добавить товар в каталог</h3>
+            <form action="/admin/catalog/create" method="post">
+                <label>Название:</label>
+                <input type="text" name="name" placeholder="Корм для собак" required>
+
+                <label>Цена:</label>
+                <input type="number" name="price" value="10.99" step="0.01" min="0">
+
+                <label>Количество:</label>
+                <input type="number" name="quantity" value="10" min="0">
+
+                <button type="submit" class="btn">Добавить товар</button>
+            </form>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="/" class="btn">← На главную</a>
+        </div>
+    </div>
+</body>
+</html>
