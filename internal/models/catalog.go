@@ -1,14 +1,12 @@
 package models
 
-import (
-	"time"
-)
+import "time"
 
 type CatalogItem struct {
 	ID          int       `json:"id"`
-	Name        string    `json:"name" binding:"required"`
-	Type        string    `json:"type" binding:"required"` // корм, игрушка, лекарство и т.д.
-	Category    string    `json:"category"`                // для собак, для кошек, универсальный
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	Category    string    `json:"category"`
 	Price       float64   `json:"price"`
 	Quantity    int       `json:"quantity"`
 	Description string    `json:"description"`

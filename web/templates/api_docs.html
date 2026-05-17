@@ -1,0 +1,19 @@
+{{define "title"}}API · Pet Shelter{{end}}
+{{define "content"}}
+<div class="page-title">
+    <h1>API</h1>
+    <p>Мини-документация публичных endpoint'ов.</p>
+</div>
+
+<section class="card">
+<pre><code>GET  /health
+GET  /api/animals
+GET  /api/catalog
+POST /api/login
+
+Пример логина:
+curl -X POST http://localhost:{{.Port}}/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin123","role":"admin"}'</code></pre>
+</section>
+{{end}}

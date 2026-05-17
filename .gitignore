@@ -1,5 +1,19 @@
+# environment
 .env
-bin/
-vendor/
+.env.*
+!.env.example
+
+# build artifacts
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# IDE/editor
 .idea/
 .vscode/
+.DS_Store
+
+# logs
+*.log

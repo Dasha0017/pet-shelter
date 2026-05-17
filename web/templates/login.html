@@ -1,14 +1,21 @@
-<form action="/login" method="POST">
-    <input type="hidden" name="role" value="{{.Role}}">
-    <p>Вы входите как: {{.Role}}</p>
-
-    <label>Имя пользователя:</label><br>
-    <input type="text" name="username" required><br><br>
-
-    {{if eq .Role "admin"}}
-    <label>Пароль администратора:</label><br>
-    <input type="password" name="password" required><br><br>
-    {{end}}
-
-    <button type="submit">Войти</button>
-</form>
+{{define "title"}}Вход · Pet Shelter{{end}}
+{{define "content"}}
+<div class="form-page">
+    <form class="card form" method="post" action="/login">
+        <h1>Вход</h1>
+        <input type="hidden" name="role" value="{{.Role}}">
+        <label>
+            Логин
+            <input name="username" required placeholder="admin">
+        </label>
+        {{if eq .Role "admin"}}
+        <label>
+            Пароль
+            <input name="password" type="password" required placeholder="admin123">
+        </label>
+        {{end}}
+        <button class="button" type="submit">Войти как {{.Role}}</button>
+        <p class="muted">Для режима пользователя пароль не нужен.</p>
+    </form>
+</div>
+{{end}}
