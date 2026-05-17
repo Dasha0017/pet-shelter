@@ -1,16 +1,14 @@
 package models
 
-import (
-	"time"
-)
+import "time"
 
 type Animal struct {
 	ID           int       `json:"id"`
-	Name         string    `json:"name" binding:"required"`
-	Species      string    `json:"species" binding:"required"` // собака, кошка и т.д.
+	Name         string    `json:"name"`
+	Species      string    `json:"species"`
 	Breed        string    `json:"breed"`
 	Age          int       `json:"age"`
-	Gender       string    `json:"gender"` // male/female
+	Gender       string    `json:"gender"`
 	HealthStatus string    `json:"health_status"`
 	Description  string    `json:"description"`
 	Adopted      bool      `json:"adopted"`
