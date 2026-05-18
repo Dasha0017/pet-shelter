@@ -89,6 +89,82 @@ func (h *Handler) AdminCreateCatalogItem(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
+func (h *Handler) AdminUpdateCatalogItem(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+
+	price, err := strconv.ParseFloat(r.FormValue("price"), 64)
+	if err != nil {
+		http.Error(w, "bad price", http.StatusBadRequest)
+		return
+	}
+
+	item := models.CatalogItem{
+		ID:          id,
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+		Price:       price,
+	}
+
+	if err := h.catalog.Update(r.Context(), &item); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (h *Handler) AdminUpdateAnimal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "bad id", http.StatusBadRequest)
+		return
+	}
+
+	age, _ := strconv.Atoi(r.FormValue("age"))
+
+	animal := models.Animal{
+		ID:           id,
+		Name:         r.FormValue("name"),
+		Species:      r.FormValue("species"),
+		Breed:        r.FormValue("breed"),
+		Age:          age,
+		Gender:       r.FormValue("gender"),
+		HealthStatus: r.FormValue("health_status"),
+		Description:  r.FormValue("description"),
+	}
+
+	if err := h.animals.Update(r.Context(), &animal); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
 func (h *Handler) AdminDeleteCatalogItem(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

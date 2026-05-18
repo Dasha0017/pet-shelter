@@ -33,8 +33,10 @@ func NewRouter(h *handlers.Handler, auth *middleware.AuthMiddleware, cfg config.
 	adminOnly := auth.RequireRole("admin")
 	mux.Handle("/admin", adminOnly(http.HandlerFunc(h.AdminPage)))
 	mux.Handle("/admin/animals/create", adminOnly(http.HandlerFunc(h.AdminCreateAnimal)))
+	mux.Handle("/admin/animals/update", adminOnly(http.HandlerFunc(h.AdminUpdateAnimal)))
 	mux.Handle("/admin/animals/delete", adminOnly(http.HandlerFunc(h.AdminDeleteAnimal)))
 	mux.Handle("/admin/catalog/create", adminOnly(http.HandlerFunc(h.AdminCreateCatalogItem)))
+	mux.Handle("/admin/catalog/update", adminOnly(http.HandlerFunc(h.AdminUpdateCatalogItem)))
 	mux.Handle("/admin/catalog/delete", adminOnly(http.HandlerFunc(h.AdminDeleteCatalogItem)))
 
 	return mux

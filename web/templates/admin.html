@@ -44,10 +44,52 @@
                 <td>{{.Species}}</td>
                 <td>{{.Age}}</td>
                 <td>
-                    <form method="post" action="/admin/animals/delete">
-                        <input type="hidden" name="id" value="{{.ID}}">
-                        <button class="link-danger" type="submit">Удалить</button>
-                    </form>
+                    <details>
+                        <summary>Редактировать</summary>
+
+                        <form method="post" action="/admin/animals/update" class="form">
+                            <input type="hidden" name="id" value="{{.ID}}">
+
+                            <label>Имя
+                                <input name="name" value="{{.Name}}">
+                            </label>
+
+                            <label>Вид
+                                <input name="species" value="{{.Species}}">
+                            </label>
+
+                            <label>Порода
+                                <input name="breed" value="{{.Breed}}">
+                            </label>
+
+                            <label>Возраст
+                                <input name="age" type="number" value="{{.Age}}">
+                            </label>
+
+                            <label>Пол
+                                <input name="gender" value="{{.Gender}}">
+                            </label>
+
+                            <label>Здоровье
+                                <input name="health_status" value="{{.HealthStatus}}">
+                            </label>
+
+                            <label>Описание
+                                <textarea name="description">{{.Description}}</textarea>
+                            </label>
+
+                            <button type="submit" class="button">
+                                Сохранить
+                            </button>
+                        </form>
+
+                        <form method="post" action="/admin/animals/delete">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button class="link-danger" type="submit">
+                                Удалить
+                            </button>
+                        </form>
+                    </details>
                 </td>
             </tr>
             {{end}}
@@ -70,10 +112,45 @@
                 <td>{{printf "%.2f" .Price}}</td>
                 <td>{{.Quantity}}</td>
                 <td>
-                    <form method="post" action="/admin/catalog/delete">
-                        <input type="hidden" name="id" value="{{.ID}}">
-                        <button class="link-danger" type="submit">Удалить</button>
-                    </form>
+                    <details>
+                        <summary>Редактировать</summary>
+
+                        <form method="post" action="/admin/catalog/update" class="form">
+                            <input type="hidden" name="id" value="{{.ID}}">
+
+                            <label>Название
+                                <input name="name" value="{{.Name}}">
+                            </label>
+
+                            <label>Описание
+                                <textarea name="description">{{.Description}}</textarea>
+                            </label>
+
+                            <label>Цена
+                                <input
+                                    name="price"
+                                    type="number"
+                                    step="0.01"
+                                    value="{{.Price}}">
+                            </label>
+
+                            <label>URL изображения
+                                <input name="image_url" value="{{.ImageURL}}">
+                            </label>
+
+                            <button type="submit" class="button">
+                                Сохранить
+                            </button>
+                        </form>
+
+                        <form method="post" action="/admin/catalog/delete">
+                            <input type="hidden" name="id" value="{{.ID}}">
+
+                            <button class="link-danger" type="submit">
+                                Удалить
+                            </button>
+                        </form>
+                    </details>
                 </td>
             </tr>
             {{end}}

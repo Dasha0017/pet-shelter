@@ -77,6 +77,30 @@ func (r *CatalogRepository) GetByID(ctx context.Context, id int) (*models.Catalo
 	return &item, nil
 }
 
+func (r *CatalogRepository) Update(ctx context.Context, item *models.CatalogItem) error {
+	query := `
+		UPDATE catalog_items
+		SET
+			name = $1,
+			description = NULLIF($2, ''),
+			price = $3,
+			image_url = NULLIF($4, ''),
+			updated_at = NOW()
+		WHERE id = $5
+	`
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		item.Name,
+		item.Description,
+		item.Price,
+		item.ID,
+	)
+
+	return err
+}
+
 func (r *CatalogRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM catalog_items WHERE id = $1`, id)
 	return err
