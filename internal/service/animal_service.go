@@ -49,6 +49,25 @@ func (s *AnimalService) GetByID(ctx context.Context, id int) (*models.Animal, er
 	return s.repo.GetByID(ctx, id)
 }
 
+func (s *AnimalService) Update(ctx context.Context, animal *models.Animal) error {
+	if animal.ID <= 0 {
+		return errors.New("некорректный id")
+	}
+
+	animal.Name = strings.TrimSpace(animal.Name)
+	animal.Species = strings.TrimSpace(animal.Species)
+
+	if animal.Name == "" {
+		return errors.New("имя обязательно")
+	}
+
+	if animal.Species == "" {
+		return errors.New("вид обязателен")
+	}
+
+	return s.repo.Update(ctx, animal)
+}
+
 func (s *AnimalService) Delete(ctx context.Context, id int) error {
 	if id <= 0 {
 		return errors.New("некорректный id животного")

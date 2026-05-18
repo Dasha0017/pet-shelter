@@ -80,6 +80,37 @@ func (r *AnimalRepository) GetByID(ctx context.Context, id int) (*models.Animal,
 	return &animal, nil
 }
 
+func (r *AnimalRepository) Update(ctx context.Context, animal *models.Animal) error {
+	query := `
+		UPDATE animals
+		SET
+			name = $1,
+			species = $2,
+			breed = NULLIF($3, ''),
+			age = $4,
+			gender = NULLIF($5, ''),
+			health_status = NULLIF($6, ''),
+			description = NULLIF($7, ''),
+			updated_at = NOW()
+		WHERE id = $8
+	`
+
+	_, err := r.db.ExecContext(
+		ctx,
+		query,
+		animal.Name,
+		animal.Species,
+		animal.Breed,
+		animal.Age,
+		animal.Gender,
+		animal.HealthStatus,
+		animal.Description,
+		animal.ID,
+	)
+
+	return err
+}
+
 func (r *AnimalRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM animals WHERE id = $1`, id)
 	return err

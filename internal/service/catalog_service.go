@@ -51,6 +51,24 @@ func (s *CatalogService) GetByID(ctx context.Context, id int) (*models.CatalogIt
 	return s.repo.GetByID(ctx, id)
 }
 
+func (s *CatalogService) Update(ctx context.Context, item *models.CatalogItem) error {
+	if item.ID <= 0 {
+		return errors.New("некорректный id")
+	}
+
+	item.Name = strings.TrimSpace(item.Name)
+
+	if item.Name == "" {
+		return errors.New("название обязательно")
+	}
+
+	if item.Price < 0 {
+		return errors.New("цена не может быть отрицательной")
+	}
+
+	return s.repo.Update(ctx, item)
+}
+
 func (s *CatalogService) Delete(ctx context.Context, id int) error {
 	if id <= 0 {
 		return errors.New("некорректный id товара")
