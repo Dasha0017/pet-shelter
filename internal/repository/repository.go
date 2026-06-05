@@ -27,4 +27,5 @@ type UserRepository interface {
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
 	List(ctx context.Context) ([]models.User, error)
 	Count(ctx context.Context) (int, error)
+	Create(ctx context.Context, user *models.User) error
 }

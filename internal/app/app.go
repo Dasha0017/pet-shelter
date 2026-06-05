@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -36,6 +37,15 @@ func New() (*App, error) {
 	animalRepo := postgres.NewAnimalRepository(db)
 	catalogRepo := postgres.NewCatalogRepository(db)
 	userRepo := postgres.NewUserRepository(db)
+
+	if err := service.EnsureAdmin(
+		context.Background(),
+		userRepo,
+		cfg.AdminUsername,
+		cfg.AdminPassword,
+	); err != nil {
+		return nil, fmt.Errorf("create admin: %w", err)
+	}
 
 	animalService := service.NewAnimalService(animalRepo)
 	catalogService := service.NewCatalogService(catalogRepo)

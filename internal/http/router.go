@@ -21,14 +21,14 @@ func NewRouter(h *handlers.Handler, auth *middleware.AuthMiddleware, cfg config.
 	mux.HandleFunc("/health", h.Health)
 
 	mux.HandleFunc("/login", h.LoginPage)
-	mux.HandleFunc("/api/login", h.LoginAPI)
+	//mux.HandleFunc("/api/login", h.LoginAPI)
 	mux.HandleFunc("/logout", h.Logout)
 	if cfg.IsDev() {
 		mux.HandleFunc("/dev-auto-login", h.DevAutoLogin)
 	}
 
-	mux.HandleFunc("/api/animals", h.AnimalsAPI)
-	mux.HandleFunc("/api/catalog", h.CatalogAPI)
+	//mux.HandleFunc("/api/animals", h.AnimalsAPI)
+	//mux.HandleFunc("/api/catalog", h.CatalogAPI)
 
 	adminOnly := auth.RequireRole("admin")
 	mux.Handle("/admin", adminOnly(http.HandlerFunc(h.AdminPage)))

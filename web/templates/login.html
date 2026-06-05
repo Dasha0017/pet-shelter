@@ -6,12 +6,12 @@
         <input type="hidden" name="role" value="{{.Role}}">
         <label>
             Логин
-            <input name="username" required placeholder="admin">
+            <input name="username" required placeholder="Логин">
         </label>
         {{if eq .Role "admin"}}
         <label>
             Пароль
-            <input name="password" type="password" required placeholder="admin123">
+            <input name="password" type="password" required placeholder="Пароль
         </label>
         {{end}}
         <button class="button" type="submit">Войти как {{.Role}}</button>
