@@ -84,3 +84,21 @@ func scanUser(scanner userScanner) (models.User, error) {
 
 	return user, nil
 }
+
+func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
+	return r.db.QueryRowContext(ctx, `
+		INSERT INTO users (
+			username,
+			email,
+			password,
+			role
+		)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at
+	`,
+		user.Username,
+		user.Email,
+		user.Password,
+		user.Role,
+	).Scan(&user.ID, &user.CreatedAt)
+}

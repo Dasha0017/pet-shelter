@@ -32,7 +32,7 @@ func Load() Config {
 		ServerPort: getEnv("SERVER_PORT", "8081"),
 
 		DatabaseURL: os.Getenv("DATABASE_URL"),
-		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBHost:      getEnv("DB_HOST", "db"),
 		DBPort:      getEnv("DB_PORT", "5432"),
 		DBUser:      getEnv("DB_USER", "postgres"),
 		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
@@ -71,6 +71,7 @@ func (c Config) DSN() string {
 
 func getEnv(key, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
+	fmt.Println(os.Getenv(key))
 	if value == "" {
 		return fallback
 	}

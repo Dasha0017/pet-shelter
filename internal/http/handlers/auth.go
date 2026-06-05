@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"net/http"
 	"time"
-
-	"pet-shelter/internal/dto"
+	//"pet-shelter/internal/dto"
 )
 
 func (h *Handler) LoginForm(w http.ResponseWriter, r *http.Request) {
@@ -32,27 +31,7 @@ func (h *Handler) LoginForm(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (h *Handler) LoginAPI(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req dto.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad json", http.StatusBadRequest)
-		return
-	}
-
-	token, user, err := h.auth.Login(r.Context(), req.Username, req.Password, req.Role)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	h.setAccessCookie(w, token)
-	writeJSON(w, http.StatusOK, dto.LoginResponse{Status: "ok", Token: token, User: user})
-}
+//
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{

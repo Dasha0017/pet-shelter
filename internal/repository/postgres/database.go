@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -11,9 +12,20 @@ import (
 )
 
 func NewDB(cfg config.Config) (*sql.DB, error) {
+
 	db, err := sql.Open("postgres", cfg.DSN())
 	if err != nil {
 		return nil, err
+	}
+
+	for i := 0; i < 10; i++ {
+		err = db.Ping()
+		if err == nil {
+			break
+		}
+
+		log.Println("waiting for database...")
+		time.Sleep(3 * time.Second)
 	}
 
 	db.SetMaxOpenConns(10)
